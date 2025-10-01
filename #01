@@ -1,0 +1,14 @@
+// règle le tempo
+setcpm(110)
+
+// basse en saw
+const bass = note("c2 c2 g1 c2").s("saw").lpf(200).gain(0.4)
+
+// arpège en supersaw
+const arp = note("c4 e4 g4 b4").s("supersaw").fast(2).lpf(1500).gain(0.25)
+
+// petite mélodie flottante
+const lead = note("c5 ~ e5 g5 ~ b4 ~").s("sine").delay(0.3).delaytime(0.5).delayfeedback(0.6).gain(0.2)
+
+// on empile le tout
+stack(bass, arp, lead)
