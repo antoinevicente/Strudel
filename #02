@@ -1,0 +1,17 @@
+// tempo global
+setcpm(110)
+
+// séquence basse (pas = 1/4 de cycle)
+const bassSeq = seq("c2 ~ g1 ~", 4).s("saw").lpf(200).gain(0.4)
+
+// séquence d’arpège (pas plus rapides)
+const arpSeq = seq("c4 e4 g4 b4", 8).s("supersaw").lpf(1200).gain(0.25)
+
+// séquence mélodique irrégulière
+const leadSeq = seq("~ c5 ~ e5 g5 ~ b4 ~", 8)
+  .s("sine")
+  .delay(0.25).delaytime(0.5).delayfeedback(0.5)
+  .gain(0.2)
+
+// empiler comme dans un séquenceur
+stack(bassSeq, arpSeq, leadSeq)
