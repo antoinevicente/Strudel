@@ -1,0 +1,79 @@
+setcps(70/60/4) // tempo lent et lourd
+
+// Kick synth percutif
+var kick = note("c1 ~ c1 ~ c1 ~ c1")
+  .s("sine")
+  .gain(3.0)
+  .sustain(0.12)
+  .lpf(140)
+  .distort(0.4)
+
+// Sub bass saturée
+var sub = note("c2 ~ c2 g1 ~ g1")
+  .s("saw")
+  .gain(1.5)
+  .sustain(0.4)
+  .lpf(250)
+  .hpf(30)
+  .distort(0.6)
+  .lpq(2)
+  .delay(0.15)
+
+// Arp industriel / séquence mécanique
+var arp = note("c3 e3 g3 b2 c3 d3 f3 g2")
+  .fast(3)
+  .s("saw")
+  .gain(0.6)
+  .sustain(0.15)
+  .seg("16 16 8 16 16 8 16 8")
+  .lpf(1800).hpf(200)
+  .distort(0.5)
+  .sometimesBy(0.5, x => x.jux(rev))
+  .sometimesBy(0.3, x => x.stut(3, 1/8))
+  .pan(sine.range(0.3,0.7).slow(6))
+
+// Pads sombres / bruités
+var pad = n("[0 0 0 2]*8")
+  .scale("<C4:minor>")
+  .s("sine")
+  .gain(0.35)
+  .sustain(1.5)
+  .lpf(700)
+  .distort(0.3)
+  .room(1.0)
+  .delay(0.3)
+  .clip(0.8)
+
+// Percussion métallique / bruit industriel
+var perc = s("<~ ~ [hh ~ ~ dd] ~ ~ [hh dd]>*8")
+  .gain(0.8)
+  .fast(2)
+  .distort(0.35)
+  .lpf(3000)
+
+// Lead agressif / bruité
+var lead = note("g4 ~ b4 ~ e5 ~ d5 ~")
+  .s("pwm")
+  .gain(0.8)
+  .sustain(0.2)
+  .seg("16 8 8 16 8 8")
+  .sometimes(x => x.superimpose(y => y.detune("<0.6>").gain(0.5)))
+  .lpf(sine.range(1000,1800).slow(5))
+  .delay(0.25).delayfeedback(0.45)
+  .pan(sine.range(0.35,0.65).slow(4))
+
+// 🎚️ Augmenter le volume global du stack
+var mix = stack(kick, sub, arp, pad, lead)
+  .gain(1.5) // augmente tout le stack de 50%
+
+// Arrangement sombre et puissant
+arrange(
+  [8, stack(kick, sub, perc)],
+  [16, stack(kick, sub, perc, pad)],
+  [16, stack(kick, sub, perc, arp)],
+  [32, stack(kick, sub, perc, arp, lead)],
+  [16, stack(kick, sub, perc, pad)],
+  [32, stack(kick, sub, perc, arp, lead)],
+  [8, stack(kick, sub)]
+)
+.take(64) // limite à 64 cycles
