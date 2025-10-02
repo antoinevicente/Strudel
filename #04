@@ -1,0 +1,51 @@
+const energy = slider(1000,0,1000)
+// C natural minor scale
+// C D Eb F G Ab Bb C
+const cMinorScale = [
+    "{c3 d3 eb3}%2", 
+    "{eb3 f3 g3}%2", 
+    "{g3 ab3 bb3}%2", 
+    "{bb3 c4}%2"
+];
+//c3 g3 ab3 bb3 c4 bb3 ab3 g3
+const cMinorThird = [
+   "{c3 g3 ab3 g3}!2", 
+    "{ab3 bb3 g3 c4}!2", 
+    "{c4 bb3 ab3 g3}!2", 
+    "{g3 c4 c3 ab3}!2"
+]
+stack(
+  //main
+  note(pick("<0!8 1!8 2!8 3!8>",cMinorScale))
+  .color("cyan")
+  .sound("triangle")
+  .transpose("[-12,0]")
+  .struct("x*16").decay(0.8).hpf(500).room(0.4)
+  .sometimes(x=>x.transpose["-5,-7"])
+  .attack("[0.1,0.2]")
+  .lpf(energy)
+  .slow(2)
+  ._punchcard({width:1200})  , 
+  // minor third
+  note(pick("<0!8 1!8 2!8 3!8>",cMinorThird))
+    .sound("sawtooth")
+    .transpose("[0,-12]")
+    .struct("x*16").decay(0.3).hpf(200).room(0.5)
+    .lpf(energy)
+    .color("hot pink")
+    ._punchcard({width:1200})
+  ,  
+  // Bass line
+  note("c2 ab1 bb1 g1")
+    .sound("sawtooth")
+    .lpf(500)
+    .gain(0.9)
+    .attack(0.05)
+    .speed(1),
+  // Drums
+  stack(
+    s("{bd ~ bd ~}!4").gain(0.6),
+    s("{~ sd ~ sd}").gain(0.6),
+    s("{hh hh ~ ~ hh hh ~ ~}!1").gain(0.3).hpf(energy)
+  ).speed(2)._punchcard({width:1200}),
+).slow(1.5)
