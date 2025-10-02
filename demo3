@@ -1,0 +1,156 @@
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const tempo = 120; 
+const beat = 60 / tempo;
+
+// --- DISTORSION ---
+function createDistortion(amount = 50) {
+    const ws = audioCtx.createWaveShaper();
+    const n = 44100;
+    const curve = new Float32Array(n);
+    for (let i = 0; i < n; i++) curve[i] = Math.tanh((i*2/n -1)*amount);
+    ws.curve = curve;
+    ws.oversample = '4x';
+    return ws;
+}
+
+// --- BRUIT ---
+function playNoise(duration, time, gainVal = 0.1, freq = 1000) {
+    const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * duration, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    filter.Q.setValueAtTime(1, audioCtx.currentTime);
+
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    noise.start(time);
+    noise.stop(time + duration);
+}
+
+// --- BASSE ---
+function playBass(freq, duration, time) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const dist = createDistortion(30);
+
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+    osc.connect(dist);
+    dist.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start(time);
+    osc.stop(time + duration);
+}
+
+// --- DRONE ---
+function playDrone(freq, duration, time, gainVal = 0.05) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start(time);
+    osc.stop(time + duration);
+}
+
+// --- DRUMS ---
+function playKick(time) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(150, time);
+    osc.frequency.exponentialRampToValueAtTime(0.001, time + beat * 0.5);
+
+    gain.gain.setValueAtTime(0.5, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + beat * 0.5);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(time);
+    osc.stop(time + beat * 0.5);
+}
+
+function playSnare(time) { playNoise(beat * 0.5, time, 0.3, 2000); }
+function playHiHat(time) { playNoise(beat * 0.25, time, 0.15, 8000); }
+
+// --- SECTIONS ---
+function intro(startTime) {
+    playDrone(110, beat * 8, startTime, 0.03);
+    for(let i=0;i<16;i++) playHiHat(startTime + i*beat*0.25);
+}
+
+function verse(startTime) {
+    const bassPattern = [55,65,55,70];
+    bassPattern.forEach((f,i) => playBass(f, beat*2, startTime + i*beat*2));
+    for(let i=0;i<4;i++){
+        const t=startTime + i*beat*2;
+        playKick(t);
+        playSnare(t + beat);
+        playHiHat(t); playHiHat(t + beat*0.5); playHiHat(t + beat); playHiHat(t + beat*1.5);
+    }
+}
+
+function chorus(startTime) {
+    const bassPattern = [70,75,70,80];
+    bassPattern.forEach((f,i) => playBass(f, beat*2, startTime + i*beat*2));
+    playDrone(110, beat*8, startTime, 0.06);
+    for(let i=0;i<4;i++){
+        const t=startTime + i*beat*2;
+        playKick(t);
+        playSnare(t + beat);
+        playHiHat(t); playHiHat(t + beat*0.25); playHiHat(t + beat*0.5); playHiHat(t + beat*0.75);
+        playNoise(0.1, t + beat*0.5, 0.1, 3000);
+    }
+}
+
+function bridge(startTime) {
+    playDrone(110, beat*4, startTime, 0.08);
+    for(let i=0;i<8;i++) playHiHat(startTime + i*beat*0.25);
+}
+
+function outro(startTime) {
+    // Diminue progressivement tous les éléments
+    playDrone(110, beat*8, startTime, 0.03);
+    const bassPattern = [55,50,45,40];
+    bassPattern.forEach((f,i) => playBass(f, beat*2, startTime + i*beat*2));
+    for(let i=0;i<4;i++){
+        const t=startTime + i*beat*2;
+        playKick(t); // kick plus discret
+        playHiHat(t); playHiHat(t + beat*0.5);
+    }
+}
+
+// --- STRUCTURE COMPLETE ---
+function playSong() {
+    let currentTime = audioCtx.currentTime;
+    intro(currentTime);        currentTime += beat*8;
+    verse(currentTime);        currentTime += beat*8;
+    chorus(currentTime);       currentTime += beat*8;
+    bridge(currentTime);       currentTime += beat*4;
+    verse(currentTime);        currentTime += beat*8;
+    chorus(currentTime);       currentTime += beat*8;
+    outro(currentTime);        // Fin progressive
+}
+
+playSong();
