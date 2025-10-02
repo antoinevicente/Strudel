@@ -1,0 +1,90 @@
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const tempo = 100; // BPM doux
+const beat = 60 / tempo;
+
+// --- SONS DE BASE ---
+function playOsc(freq, type='sine', duration=1, time=0, gainVal=0.2) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(time);
+    osc.stop(time + duration);
+}
+
+function playNoise(duration, time, gainVal=0.1) {
+    const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate*duration, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<data.length;i++) data[i] = Math.random()*2-1;
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+    noise.connect(gain);
+    gain.connect(audioCtx.destination);
+    noise.start(time); noise.stop(time+duration);
+}
+
+// --- DRUMS SIMPLES ---
+function playHiHat(time) { playNoise(0.1, time, 0.05); }
+function playClap(time) { playNoise(0.2, time, 0.08); }
+
+// --- SECTIONS ---
+function intro(startTime){
+    // Drone atmosphérique
+    playOsc(110, 'sawtooth', beat*16, startTime, 0.05);
+    playOsc(220, 'sine', beat*16, startTime, 0.03);
+}
+
+function verse(startTime){
+    // Mélodie simple (arpège)
+    const melody = [261.63, 293.66, 329.63, 349.23]; // C-D-E-F
+    melody.forEach((note,i)=>playOsc(note,'sine', beat, startTime + i*beat, 0.1));
+    // Basse
+    playOsc(130.81,'square', beat*4, startTime, 0.1);
+    // Hi-hat léger
+    for(let i=0;i<4;i++) playHiHat(startTime + i*beat);
+}
+
+function chorus(startTime){
+    // Mélodie plus intense
+    const melody = [392,440,493,523]; // G-A-B-C
+    melody.forEach((note,i)=>playOsc(note,'sawtooth', beat, startTime + i*beat, 0.12));
+    // Accord de basse
+    playOsc(130.81,'square', beat*4, startTime, 0.12);
+    // Percussions
+    for(let i=0;i<4;i++){
+        playHiHat(startTime + i*beat*0.5);
+        if(i%2==1) playClap(startTime + i*beat*0.5);
+    }
+}
+
+function bridge(startTime){
+    // Drone + arpège doux
+    playOsc(220,'sine', beat*8, startTime,0.04);
+    const melody=[261.63, 329.63, 392];
+    melody.forEach((note,i)=>playOsc(note,'sine', beat, startTime + i*beat,0.08));
+}
+
+function outro(startTime){
+    // Décroissance progressive
+    playOsc(110,'sawtooth', beat*8, startTime,0.03);
+    playOsc(130.81,'sine', beat*8, startTime,0.03);
+}
+
+// --- STRUCTURE MUSICALE ---
+function playSong(){
+    let currentTime = audioCtx.currentTime;
+    intro(currentTime); currentTime += beat*16;
+    verse(currentTime); currentTime += beat*4;
+    chorus(currentTime); currentTime += beat*4;
+    bridge(currentTime); currentTime += beat*8;
+    verse(currentTime); currentTime += beat*4;
+    chorus(currentTime); currentTime += beat*4;
+    outro(currentTime);
+}
+
+playSong();
